@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="utf-8"?>
+<s:WindowedApplication xmlns:fx="http://ns.adobe.com/mxml/2009" showStatusBar="false" creationComplete="onCreate(event)"
+					   nativeDragEnter="onDragIn(event)" nativeDragDrop="onDragDrop(event)"
+					   xmlns:s="library://ns.adobe.com/flex/spark" xmlns:mx="library://ns.adobe.com/flex/mx">
+	<fx:Script>
+		<![CDATA[
+			import mx.events.FlexEvent;
+			import mx.events.ResizeEvent;
+			import mx.graphics.codec.PNGEncoder;
+			
+			protected function onClickLoad(event:MouseEvent):void
+			{
+				var f:File = File.desktopDirectory;
+				var filter1:FileFilter = new FileFilter("Image file", "*.png;*.bmp;*.gif;*.pcx;*.jpg");
+				var filter2:FileFilter = new FileFilter("All file", "*.*");
+				
+				f.addEventListener(Event.SELECT, function( e:Event ):void{
+					bitmapImage.source = f.nativePath;
+				});
+				
+				f.browseForOpen("Load image file", [filter1,filter2])  
+				
+			}
+			
+			protected function onClickSave(event:MouseEvent):void
+			{
+				var f:File = File.desktopDirectory;
+				
+				f.addEventListener(Event.SELECT, function( e:Event ):void{
+					var path:String = f.nativePath + ".png";
+					var encoder:PNGEncoder = new PNGEncoder;
+					var fs:FileStream = new FileStream();
+					fs.open( new File(path), FileMode.WRITE );
+					fs.writeBytes(	encoder.encode( bitmapImage.bitmapData ) );
+					fs.close();
+				});
+				f.browseForSave("Save");
+				
+			}
+			
+			protected function onDragIn(event:NativeDragEvent):void
+			{
+				if(event.clipboard.hasFormat(ClipboardFormats.BITMAP_FORMAT) ||
+					event.clipboard.hasFormat(ClipboardFormats.FILE_LIST_FORMAT)
+				){
+					NativeDragManager.acceptDragDrop(this);	
+				}
+				
+			}
+			
+			protected function onDragDrop(event:NativeDragEvent):void
+			{
+				// TODO Auto-generated method stub
+				if(event.clipboard.hasFormat(ClipboardFormats.BITMAP_FORMAT))
+				{
+					bitmapImage.source = event.clipboard.getData( ClipboardFormats.BITMAP_FORMAT );				
+				}
+				else if(event.clipboard.hasFormat(ClipboardFormats.FILE_LIST_FORMAT))
+				{
+					var files:Array = event.clipboard.getData(ClipboardFormats.FILE_LIST_FORMAT) as Array;
+					for each(var file:File in files){						
+						bitmapImage.source = file.nativePath;
+						break;
+					}
+				}		
+				 
+			}
+			
+			protected function run():void
+			{
+				var bitmapData:BitmapData = bitmapImage.bitmapData;
+				var bm2:BitmapData = new BitmapData( bitmapData.width, bitmapData.height, true, 0);
+				
+				for(var i:int=0;i<bitmapData.width;i++)
+				{
+					for(var j:int=0;j<bitmapData.height;j++)
+					{
+						var rgb:uint = bitmapData.getPixel(i,j);
+						var r:uint = (rgb & 0xFF0000) >> 16;
+						var g:uint = (rgb & 0x00FF00) >> 8;
+						var b:uint = (rgb & 0x0000FF) >> 0;
+						var a:uint = 0xFF - (r+g+b)/3;
+						
+						var argb:uint = a << 24 | 0x00000000; 
+						bm2.setPixel32( i, j, argb  );
+					}
+				}
+				bitmapImage.source = bm2;
+			}
+			
+			protected function onLoaded(event:Event):void
+			{	
+				run();
+			}
+			
+			
+			protected function onResize(event:ResizeEvent):void
+			{
+				if(bgPattern){
+					bg.graphics.clear();
+					bg.graphics.beginBitmapFill(bgPattern, null, true, false);
+					bg.graphics.drawRect(0, 0, bitmapImage.width, bitmapImage.height );
+					bg.graphics.endFill();	
+				}
+			}
+			
+			private var bgPattern:BitmapData;
+			protected function onCreate(event:FlexEvent):void
+			{
+				bgPattern = new BitmapData(40, 40, false, 0xffffff);
+				bgPattern.fillRect( new Rectangle(0,0,20,20), 0xeeeeee);
+				bgPattern.fillRect( new Rectangle(20,20,20,20), 0xeeeeee);
+				onResize(null);
+			}
+			
+		]]>
+	</fx:Script>
+	<fx:Declarations>
+		<!-- Place non-visual elements (e.g., services, value objects) here -->
+	</fx:Declarations>
+	
+	<mx:UIComponent id="bg" />
+	
+	<s:Group id="bgGroup" width="100%" height="100%" resize="onResize(event)" >		
+		<s:BitmapImage id="bitmapImage" width="100%" height="100%" scaleMode="letterbox" complete="onLoaded(event)"  >
+		</s:BitmapImage>
+	</s:Group>
+	
+	<s:HGroup width="100%" bottom="0" verticalAlign="middle" paddingLeft="10" paddingBottom="10" paddingRight="10">
+		<s:Button label="Load" click="onClickLoad(event)" />
+		<s:Button label="Save as" click="onClickSave(event)" />
+		<s:Spacer width="100%"/>
+		<s:Label text="https://github.com/ho4040/WhiteEraser"/>
+	</s:HGroup>
+</s:WindowedApplication>
