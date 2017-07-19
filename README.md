@@ -1,4 +1,4 @@
-# WhiteEraser
+# 흰색지우개
 
 ![example](http://i.imgur.com/v5vN99w.png)
 
